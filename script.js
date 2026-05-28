@@ -4,133 +4,139 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let mouse = {
-  x: canvas.width / 2,
-  y: canvas.height / 2
-};
+let target = { x: canvas.width/2, y: canvas.height/2 };
+let pos = { x: canvas.width/2, y: canvas.height/2 };
 
 window.addEventListener("mousemove", e => {
-  mouse.x = e.clientX;
-  mouse.y = e.clientY;
+  target.x = e.clientX;
+  target.y = e.clientY;
 });
 
-// 🦂 رسم عقرب خشن
+window.addEventListener("touchmove", e => {
+  target.x = e.touches[0].clientX;
+  target.y = e.touches[0].clientY;
+});
+
 function drawScorpion(){
 
-  let dx = mouse.x - canvas.width / 2;
-  let dy = mouse.y - canvas.height / 2;
+  // ⚡ حرکت نرم (نه پرشی)
+  pos.x += (target.x - pos.x) * 0.08;
+  pos.y += (target.y - pos.y) * 0.08;
+
+  let dx = target.x - pos.x;
+  let dy = target.y - pos.y;
   let dist = Math.sqrt(dx*dx + dy*dy);
 
   let rage = Math.max(0, 1 - dist / 400);
-  let speed = 0.05 + rage * 0.25;
 
-  let centerX = canvas.width / 2 + dx * (0.15 + rage * 0.25);
-  let centerY = canvas.height / 2 + dy * (0.15 + rage * 0.25);
-
-  let shakeX = (Math.random() - 0.5) * rage * 10;
-  let shakeY = (Math.random() - 0.5) * rage * 10;
+  let time = Date.now() * 0.005;
 
   ctx.save();
-  ctx.translate(centerX + shakeX, centerY + shakeY);
+  ctx.translate(pos.x, pos.y);
 
-  let red = Math.floor(rage * 200);
+  let color = rage > 0.5 ? "#ff2e2e" : "#00ff88";
 
-  ctx.strokeStyle = `rgb(${red},255,100)`;
-  ctx.fillStyle = `rgb(${red},255,100)`;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 15 + rage * 25;
+  ctx.shadowColor = color;
+  ctx.lineWidth = 2;
 
-  ctx.shadowBlur = 20 + rage * 30;
-  ctx.shadowColor = `rgb(${red},255,100)`;
-  ctx.lineWidth = 1.5 + rage;
-
-  let time = Date.now() * speed;
-
-  // بدن
-  let points = [];
-  for(let i = 0; i < 10; i++){
-    let x = 0;
-    let y = i * 20;
-
-    points.push({x,y});
+  // 🧬 بدن (ساده و واضح)
+  for(let i = 0; i < 7; i++){
+    let y = i * 22;
 
     ctx.beginPath();
-    ctx.arc(x,y,2.5 + rage,0,Math.PI*2);
-    ctx.fill();
+    ctx.ellipse(0, y, 10, 14, 0, 0, Math.PI*2);
+    ctx.stroke();
   }
 
+  // 🦂 دم (طبیعی‌تر)
   ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for(let i = 1; i < points.length; i++){
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-  ctx.stroke();
-
-  // دم
-  ctx.beginPath();
-  ctx.moveTo(0,180);
+  ctx.moveTo(0, 140);
   ctx.quadraticCurveTo(
-    70 + Math.sin(time) * (5 + rage*20),
-    120,
-    20,
-    40
+    40,
+    80,
+    70,
+    10
   );
   ctx.stroke();
 
   // نیش
   ctx.beginPath();
-  ctx.arc(20,30,3 + rage*3,0,Math.PI*2);
+  ctx.arc(70, 10, 4, 0, Math.PI*2);
   ctx.fill();
 
-  ctx.beginPath();
-  ctx.moveTo(20,30);
-  ctx.lineTo(40 + rage*20, 10 - rage*10);
-  ctx.stroke();
+  // 🦵 پاها (واقعی‌تر: کم‌نوسان + مفصلی)
+  for(let i = 0; i < 5; i++){
 
-  // پاها
-  for(let i = 0; i < 4; i++){
-    let y = 40 + i * 25;
-    let wave = Math.sin(time + i) * (10 + rage*15);
+    let y = 20 + i * 25;
 
-    ctx.beginPath();
-    ctx.moveTo(-10, y);
-    ctx.lineTo(-90 + wave, y - 25 + wave);
-    ctx.stroke();
+    let baseAngle = Math.sin(time * 2) * 0.3; // خیلی کم حرکت
 
-    ctx.beginPath();
-    ctx.moveTo(10, y);
-    ctx.lineTo(90 - wave, y - 25 + wave);
-    ctx.stroke();
+    // چپ پا (3 مفصل)
+    drawLeg(-1, y, baseAngle);
+
+    // راست پا
+    drawLeg(1, y, -baseAngle);
   }
 
-  // چشم‌ها
+  // 👁 چشم
   ctx.beginPath();
-  ctx.fillStyle = rage > 0.5 ? "red" : "#00ff88";
-
-  ctx.arc(-8,-10,2 + rage,0,Math.PI*2);
-  ctx.arc(8,-10,2 + rage,0,Math.PI*2);
+  ctx.arc(-6, -10, 3 + rage, 0, Math.PI*2);
+  ctx.arc(6, -10, 3 + rage, 0, Math.PI*2);
   ctx.fill();
 
   ctx.restore();
 }
 
-// ✨ ستاره‌ها
+// 🦵 ساخت پا واقعی (مفصلی)
+function drawLeg(side, y, angle){
+
+  let x0 = side * 5;
+  let y0 = y;
+
+  let x1 = side * (25 + angle * 10);
+  let y1 = y + 10;
+
+  let x2 = side * (50 + angle * 15);
+  let y2 = y + 25;
+
+  let x3 = side * (70 + angle * 20);
+  let y3 = y + 35;
+
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x3, y3);
+  ctx.stroke();
+
+  // مفصل‌ها
+  ctx.beginPath();
+  ctx.arc(x1, y1, 2, 0, Math.PI*2);
+  ctx.arc(x2, y2, 2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ✨ ذرات
 function stars(){
-  for(let i = 0; i < 2; i++){
-    ctx.fillStyle = "rgba(0,255,100,0.2)";
+  for(let i=0;i<2;i++){
+    ctx.fillStyle = "rgba(0,255,100,0.15)";
     ctx.beginPath();
     ctx.arc(
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      Math.random() * 2,
+      Math.random()*canvas.width,
+      Math.random()*canvas.height,
+      Math.random()*2,
       0,
-      Math.PI * 2
+      Math.PI*2
     );
     ctx.fill();
   }
 }
 
-// 🎬 انیمیشن اصلی
 function animate(){
-  ctx.fillStyle = "rgba(0,0,0,0.1)";
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
   stars();
@@ -141,7 +147,6 @@ function animate(){
 
 animate();
 
-// 📱 ریسایز
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
