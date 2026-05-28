@@ -17,102 +17,108 @@ window.addEventListener("touchmove", e => {
   target.y = e.touches[0].clientY;
 });
 
+// 🎯 محاسبه زاویه حرکت
+function angleToTarget(){
+  return Math.atan2(target.y - pos.y, target.x - pos.x);
+}
+
 function drawScorpion(){
 
-  // ⚡ حرکت نرم (نه پرشی)
-  pos.x += (target.x - pos.x) * 0.08;
-  pos.y += (target.y - pos.y) * 0.08;
+  // ⚡ حرکت نرم بدن
+  pos.x += (target.x - pos.x) * 0.06;
+  pos.y += (target.y - pos.y) * 0.06;
+
+  let angle = angleToTarget();
 
   let dx = target.x - pos.x;
   let dy = target.y - pos.y;
   let dist = Math.sqrt(dx*dx + dy*dy);
 
-  let rage = Math.max(0, 1 - dist / 400);
+  let rage = Math.max(0, 1 - dist / 450);
 
   let time = Date.now() * 0.005;
 
   ctx.save();
   ctx.translate(pos.x, pos.y);
+  ctx.rotate(angle); // 🧠 بدن به سمت موس می‌چرخد
 
   let color = rage > 0.5 ? "#ff2e2e" : "#00ff88";
 
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.shadowBlur = 15 + rage * 25;
+  ctx.shadowBlur = 20 + rage * 30;
   ctx.shadowColor = color;
   ctx.lineWidth = 2;
 
-  // 🧬 بدن (ساده و واضح)
-  for(let i = 0; i < 7; i++){
-    let y = i * 22;
-
+  // 🧬 ستون فقرات (بدن واقعی‌تر)
+  for(let i = 0; i < 8; i++){
     ctx.beginPath();
-    ctx.ellipse(0, y, 10, 14, 0, 0, Math.PI*2);
+    ctx.arc(0, i * 20, 6, 0, Math.PI*2);
     ctx.stroke();
   }
 
-  // 🦂 دم (طبیعی‌تر)
+  // 🦂 دم (با چرخش بدن هماهنگ)
   ctx.beginPath();
-  ctx.moveTo(0, 140);
-  ctx.quadraticCurveTo(
-    40,
-    80,
-    70,
-    10
-  );
+  ctx.moveTo(0, 150);
+  ctx.quadraticCurveTo(60, 80, 90, 10);
   ctx.stroke();
 
   // نیش
   ctx.beginPath();
-  ctx.arc(70, 10, 4, 0, Math.PI*2);
+  ctx.arc(90, 10, 4 + rage, 0, Math.PI*2);
   ctx.fill();
 
-  // 🦵 پاها (واقعی‌تر: کم‌نوسان + مفصلی)
+  // 🦵 پاها (joint واقعی + چرخش بدن)
   for(let i = 0; i < 5; i++){
 
     let y = 20 + i * 25;
 
-    let baseAngle = Math.sin(time * 2) * 0.3; // خیلی کم حرکت
+    let move = Math.sin(time * 3 + i) * (0.4 + rage * 0.8);
 
-    // چپ پا (3 مفصل)
-    drawLeg(-1, y, baseAngle);
-
-    // راست پا
-    drawLeg(1, y, -baseAngle);
+    drawLeg(y, move, color);
   }
 
   // 👁 چشم
   ctx.beginPath();
-  ctx.arc(-6, -10, 3 + rage, 0, Math.PI*2);
-  ctx.arc(6, -10, 3 + rage, 0, Math.PI*2);
+  ctx.arc(-6, -8, 3 + rage, 0, Math.PI*2);
+  ctx.arc(6, -8, 3 + rage, 0, Math.PI*2);
   ctx.fill();
 
   ctx.restore();
 }
 
-// 🦵 ساخت پا واقعی (مفصلی)
-function drawLeg(side, y, angle){
+// 🦵 پای مفصلی واقعی (چرخشی)
+function drawLeg(y, move, color){
 
-  let x0 = side * 5;
-  let y0 = y;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
 
-  let x1 = side * (25 + angle * 10);
-  let y1 = y + 10;
+  let base = { x: 0, y };
 
-  let x2 = side * (50 + angle * 15);
-  let y2 = y + 25;
+  let a1 = move;
+  let a2 = move * 1.5;
+  let a3 = move * 2;
 
-  let x3 = side * (70 + angle * 20);
-  let y3 = y + 35;
+  // segment 1
+  let x1 = base.x + Math.cos(a1) * 25;
+  let y1 = base.y + Math.sin(a1) * 10;
+
+  // segment 2
+  let x2 = x1 + Math.cos(a2) * 30;
+  let y2 = y1 + Math.sin(a2) * 15;
+
+  // segment 3
+  let x3 = x2 + Math.cos(a3) * 25;
+  let y3 = y2 + Math.sin(a3) * 10;
 
   ctx.beginPath();
-  ctx.moveTo(x0, y0);
+  ctx.moveTo(base.x, base.y);
   ctx.lineTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.lineTo(x3, y3);
   ctx.stroke();
 
-  // مفصل‌ها
+  // joints
   ctx.beginPath();
   ctx.arc(x1, y1, 2, 0, Math.PI*2);
   ctx.arc(x2, y2, 2, 0, Math.PI*2);
@@ -135,8 +141,9 @@ function stars(){
   }
 }
 
+// 🎬 انیمیشن
 function animate(){
-  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
   stars();
@@ -147,6 +154,7 @@ function animate(){
 
 animate();
 
+// 📏 ریسایز
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
